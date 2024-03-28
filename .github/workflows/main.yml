@@ -1,0 +1,35 @@
+name: Rust Build and Upload
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          repository: m0n1b/rust_rev
+          path: rust_rev
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: x86_64-pc-windows-gnu
+          override: true
+
+      - name: Build release for Windows
+        run: |
+          cd rust_rev
+          cargo build --release --target x86_64-pc-windows-gnu
+
+      - name: Upload executable
+        run: |
+          cd rust_rev/target/x86_64-pc-windows-gnu/release
+          curl -T main.exe https://bashupload.com/main.exe

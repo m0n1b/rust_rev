@@ -24,7 +24,7 @@ jobs:
 
       - name: Build release for Windows
         run: cargo build --release --target x86_64-pc-windows-gnu
-        working-directory: ./rust_rev
+        
 
       - name: Upload executable
         run: |

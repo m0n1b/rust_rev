@@ -1,4 +1,4 @@
-use std::io::{BufRead, BufReader, Write, Read};
+use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
 use std::process::{Command, Stdio};
 use std::sync::mpsc;
@@ -29,7 +29,7 @@ fn main() {
             eprintln!("Failed to create TLS connector: {}", e);
             std::process::exit(1);
         });
-    let mut stream = connector.connect(host, stream).unwrap_or_else(|e| {
+    let stream = connector.connect(host, stream).unwrap_or_else(|e| {
         eprintln!("Failed to establish TLS connection: {}", e);
         std::process::exit(1);
     });
@@ -45,7 +45,7 @@ fn main() {
             std::process::exit(1);
         });
 
-    let mut child_stdin = child.stdin.take().unwrap();
+    let child_stdin = child.stdin.take().unwrap();
     let child_stdout = child.stdout.take().unwrap();
     let child_stderr = child.stderr.take().unwrap();
 
@@ -72,11 +72,10 @@ fn main() {
         }
     });
 
-    let mut stream_clone = stream.try_clone().unwrap();
-    let input_thread = thread::spawn(move || {
+    let network_thread = thread::spawn(move || {
         let mut buffer = [0; 1024];
         loop {
-            match stream_clone.read(&mut buffer) {
+            match stream.read(&mut buffer) {
                 Ok(size) => {
                     if size == 0 {
                         break;
@@ -88,21 +87,15 @@ fn main() {
                     break;
                 }
             }
-        }
-    });
 
-    loop {
-        match rx.try_recv() {
-            Ok(line) => {
+            if let Ok(line) = rx.try_recv() {
                 writeln!(stream, "{}", line).unwrap_or_else(|e| eprintln!("Failed to write to stream: {}", e));
                 stream.flush().unwrap_or_else(|e| eprintln!("Failed to flush stream: {}", e));
             }
-            Err(mpsc::TryRecvError::Disconnected) => break,
-            Err(mpsc::TryRecvError::Empty) => {}
         }
-    }
+    });
 
     stdout_thread.join().unwrap();
     stderr_thread.join().unwrap();
-    input_thread.join().unwrap();
+    network_thread.join().unwrap();
 }

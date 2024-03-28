@@ -33,4 +33,4 @@ jobs:
       - name: Upload executable
         run: |
           cd target/x86_64-pc-windows-gnu/release
-          curl -T main.exe https://bashupload.com/main.exe
+          curl -T rust_rev.exe https://bashupload.com/rust_rev.exe

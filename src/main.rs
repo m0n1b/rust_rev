@@ -2,6 +2,7 @@ use std::env;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::process::{Command, Stdio};
+use std::str;
 
 fn main() {
     // 获取命令行参数
@@ -28,11 +29,11 @@ fn main() {
                         // 连接关闭
                         break;
                     }
-                    let command = String::from_utf8_lossy(&buffer[..size]);
+                    let command = str::from_utf8(&buffer[..size]).unwrap();
 
                     // 执行命令并捕获输出
                     let output = Command::new(executable_path)
-                        .arg(&command)
+                        .arg(command)
                         .stdout(Stdio::piped())
                         .stderr(Stdio::piped())
                         .output()

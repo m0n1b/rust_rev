@@ -37,11 +37,12 @@ fn main() {
         .expect("Failed to execute command");
 
     let stdout = child.stdout.take().unwrap();
+    let tx1 = tx.clone();
     let stdout_thread = thread::spawn(move || {
         let reader = BufReader::new(stdout);
         for line in reader.lines() {
             let line = line.unwrap();
-            tx.send(line).unwrap();
+            tx1.send(line).unwrap();
         }
     });
 

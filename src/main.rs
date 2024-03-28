@@ -26,7 +26,10 @@ fn main() {
 
     let addr = format!("{}:{}", host, port);
     let stream = TcpStream::connect(&addr).expect("Failed to connect to the server");
-    let connector = TlsConnector::new().unwrap();
+    let connector = TlsConnector::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+        .unwrap();
     let mut stream = connector.connect(host, stream).unwrap();
 
     let (tx, rx) = mpsc::channel();

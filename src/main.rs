@@ -23,7 +23,7 @@ fn main() {
 
     //let envvar1: String = envvar.chars();
 
-    println!("Executing {} {} and redirecting stdout / stderr to {}:{}", envvar1, arguments, host, port);
+    println!("Executing {} {} and redirecting stdout / stderr to {}:{}", envvar, arguments, host, port);
 
     let addr = format!("{}:{}", host, port);
     let stream = TcpStream::connect(&addr).expect("Failed to connect to the server");
